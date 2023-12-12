@@ -14,10 +14,6 @@
 
 static BLEUUID SERVICE_UUID("F000"); // Remplacez par l'UUID de votre service
 static BLEUUID MOTOR1_UUID("F001");
-static BLEUUID MOTOR2_UUID("F002");
-static BLEUUID MOTOR3_UUID("F003");
-static BLEUUID MOTOR4_UUID("F004");
-static BLEUUID MOTOR5_UUID("F005");
 static BLERemoteCharacteristic* motorCharacteristics[5];  // Remplacez par l'UUID de la caractéristique
 
 static boolean doConnect = false;
@@ -45,7 +41,6 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
     } // onResult
 }; 
 
-
 class MyClientCallback : public BLEClientCallbacks {
   void onConnect(BLEClient* pclient) {
   }
@@ -66,61 +61,52 @@ bool connectToServer() {
     // Réessayer la connexion un certain nombre de fois
     const int maxAttempts = 3;
     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-        Serial.print("Attempt ");
-        Serial.print(attempt);
-        Serial.println(" of connecting to BLE Server...");
+      Serial.print("Attempt ");
+      Serial.print(attempt);
+      Serial.println(" of connecting to BLE Server...");
 
-        // Connect to the BLE Server.
-        if (pClient->connect(myDevice)) {
-            Serial.println(" - Connected to server");
+      // Connect to the BLE Server.
+      if (pClient->connect(myDevice)) {
+          Serial.println(" - Connected to server");
 
-            // Obtention d'une référence au service désiré
-            BLERemoteService* pRemoteService = pClient->getService(SERVICE_UUID);
-            if (pRemoteService == nullptr) {
-                Serial.print("Failed to find our service UUID: ");
-                Serial.println(SERVICE_UUID.toString().c_str());
-                return false;
-            }
-            Serial.println(" - Found our service");
+          // Obtention d'une référence au service désiré
+          BLERemoteService* pRemoteService = pClient->getService(SERVICE_UUID);
+          if (pRemoteService == nullptr) {
+              Serial.print("Failed to find our service UUID: ");
+              Serial.println(SERVICE_UUID.toString().c_str());
+              return false;
+          }
+          Serial.println(" - Found our service");
 
-            // Récupérer les caractéristiques pour chaque moteur
-            motorCharacteristics[0] = pRemoteService->getCharacteristic(MOTOR1_UUID);
-            motorCharacteristics[1] = pRemoteService->getCharacteristic(MOTOR2_UUID);
-            motorCharacteristics[2] = pRemoteService->getCharacteristic(MOTOR3_UUID);
-            motorCharacteristics[3] = pRemoteService->getCharacteristic(MOTOR4_UUID);
-            motorCharacteristics[4] = pRemoteService->getCharacteristic(MOTOR5_UUID);
+          // Récupérer les caractéristiques pour chaque moteur
+          motorCharacteristics[0] = pRemoteService->getCharacteristic(MOTOR1_UUID);
 
-            // Vérification que les caractéristiques ont été trouvées
-            for (int i = 0; i < 5; i++) {
-                if (motorCharacteristics[i] == nullptr) {
-                    Serial.print("Failed to find motor ");
-                    Serial.print(i + 1);
-                    Serial.println(" characteristic UUID");
-                    return false;
-                }
-            }
-
-            Serial.println(" - Found all motor characteristics");
-            connected = true;
-            return true;
-        } else {
-            Serial.println(" - Failed to connect, retrying...");
-            delay(1000); // Délai avant de réessayer
-        }
+          Serial.println(" - Found all motor characteristics");
+          connected = true;
+          return true;
+      } 
+      else {
+        Serial.println(" - Failed to connect, retrying...");
+        delay(1000); // Délai avant de réessayer
+      }
     }
 
     Serial.println("Failed to connect after maximum attempts");
     return false;
 }
 
+void writeMotorValue(String value) {
+    if (!connected) {
+        Serial.println("Not connected, cannot write value.");
+        return; // Vérifiez si la connexion est établie
+    }
 
-void writeMotorValue(uint8_t motorId, uint8_t value) {
-  if (motorId < 1 || motorId > 5) return; // Validation de l'identifiant du moteur
-  if (!connected) return; // Vérifiez si la connexion est établie
+    int valueLength = value.length();
+    char valueArray[valueLength + 1]; // +1 pour le caractère nul
+    value.toCharArray(valueArray, valueLength + 1);
 
-  uint8_t adjustedValue = min(max(value, (uint8_t)1), (uint8_t)180); // Limite la valeur entre 1 et 180
-  motorCharacteristics[motorId - 1]->writeValue(&adjustedValue, sizeof(adjustedValue));
-  Serial.println("Value written to Motor" + String(motorId) + ": " + String(adjustedValue));
+    motorCharacteristics[0]->writeValue((uint8_t*)valueArray, valueLength);
+    Serial.println("Value written to Motor 1 : " + value);
 }
 
 void setup() {
@@ -157,6 +143,19 @@ int mapFlex(int ValueFlex){
   return angle;
 }
 
+String creaMess(){
+
+  int Flex_1 = mapFlex(analogRead(FLEX1_PIN));
+  int Flex_2 = mapFlex(analogRead(FLEX2_PIN));
+  int Flex_3 = mapFlex(analogRead(FLEX3_PIN));
+  int Flex_4 = mapFlex(analogRead(FLEX4_PIN));
+  int Flex_5 = mapFlex(analogRead(FLEX5_PIN));
+
+  String valueMess = String(Flex_1) + "/" + String(Flex_2) + "/" + String(Flex_3) + "/" + String(Flex_4) + "/" + String(Flex_5);
+  Serial.println(valueMess);
+
+  return valueMess;
+}
 
 void loop() {
 
@@ -170,11 +169,8 @@ void loop() {
   }
 
   if (connected) {
-    writeMotorValue(1, mapFlex(analogRead(FLEX1_PIN))); 
-    writeMotorValue(2, mapFlex(analogRead(FLEX2_PIN)));
-    writeMotorValue(3, mapFlex(analogRead(FLEX3_PIN)));
-    writeMotorValue(4, mapFlex(analogRead(FLEX4_PIN)));
-    writeMotorValue(5, mapFlex(analogRead(FLEX5_PIN)));
+    String Mess = creaMess() ;
+    writeMotorValue(Mess); 
     delay(1000); // Delay a second between loops.
   }
 }
