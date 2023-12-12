@@ -13,10 +13,6 @@
 
 static BLEUUID SERVICE_UUID("F000");
 static BLEUUID MOTOR1_UUID("F001");
-static BLEUUID MOTOR2_UUID("F002");
-static BLEUUID MOTOR3_UUID("F003");
-static BLEUUID MOTOR4_UUID("F004");
-static BLEUUID MOTOR5_UUID("F005");
 
 Servo Doigt1;
 Servo Doigt2;
@@ -30,51 +26,52 @@ uint8_t MOTOR3_VALUE;
 uint8_t MOTOR4_VALUE;
 uint8_t MOTOR5_VALUE;
 
+String Motors[100];
+int StringCount = 0;
+
 void Movement_Motor(){
-  Doigt1.write(MOTOR1_VALUE);
-  Doigt2.write(MOTOR2_VALUE);
-  Doigt3.write(MOTOR3_VALUE);
-  Doigt4.write(MOTOR4_VALUE);
-  Doigt5.write(MOTOR5_VALUE);
+  Doigt1.write(Motors[0].toInt());
+  Doigt2.write(Motors[1].toInt());
+  Doigt3.write(Motors[2].toInt());
+  Doigt4.write(Motors[3].toInt());
+  Doigt5.write(Motors[4].toInt());
+  Serial.println("fait");
 }
 
-uint8_t handleOnWrite(BLECharacteristic *pCharacteristic) {
+void handleOnWrite(BLECharacteristic *pCharacteristic) {
     std::string value = pCharacteristic->getValue();
+    Serial.print("Valeur du message de base : ");
+    String valueStr = String(value.c_str());
+    Serial.println(valueStr);
 
-    if (value.length() > 0) {
-        uint8_t newValue = (uint8_t)value[0];  // Exemple avec un seul octet
-        Serial.println("Nouvelle valeur : " + String(newValue));
-        return newValue;
+  while (valueStr.length() > 0) 
+  {
+    int index = valueStr.indexOf(' ');
+    if (index == -1) // No space found
+    {
+      Serial.println(valueStr);
+      Motors[StringCount++] = valueStr;
+      break;
     }
+    else
+    {
+      Motors[StringCount++] = valueStr.substring(0, index);
+      valueStr = valueStr.substring(index+1);
+    }
+  }
+
+  StringCount = 0;
+  Serial.println(Motors[0]);
+  Serial.println(Motors[1]);
+  Serial.println(Motors[2]);
+  Serial.println(Motors[3]);
+  Serial.println(Motors[4]);
+  Movement_Motor();
 }
 
 class Motor1Callbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *Motor1) override {
-    MOTOR1_VALUE = handleOnWrite(Motor1);
-  }
-};
-
-class Motor2Callbacks : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *Motor2) override{
-    MOTOR2_VALUE = handleOnWrite(Motor2);
-  }
-};
-
-class Motor3Callbacks : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *Motor3) override {
-    MOTOR3_VALUE = handleOnWrite(Motor3);
-  }
-};
-
-class Motor4Callbacks : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *Motor4) override {
-    MOTOR4_VALUE = handleOnWrite(Motor4);
-  }
-};
-
-class Motor5Callbacks : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *Motor5) override {
-    MOTOR5_VALUE = handleOnWrite(Motor5);
+     handleOnWrite(Motor1); // MOTOR1_VALUE =
   }
 };
 
@@ -92,54 +89,29 @@ void setup() {
     BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
   );
 
-  BLECharacteristic *Motor2 = pService->createCharacteristic(
-    MOTOR2_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
-  );
-
-  BLECharacteristic *Motor3 = pService->createCharacteristic(
-    MOTOR3_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
-  );
-
-  BLECharacteristic *Motor4 = pService->createCharacteristic(
-    MOTOR4_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
-  );
-
-  BLECharacteristic *Motor5 = pService->createCharacteristic(
-    MOTOR5_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
-  );
-
   // Définir une valeur initiale pour la caractéristique Myo
-  Motor1->setValue("bonjour");
-  Motor2->setValue("bonjour");
-  Motor3->setValue("bonjour");
-  Motor4->setValue("bonjour");
-  Motor5->setValue("bonjour");
+  Motor1 -> setValue("bonjour");
 
   // Activer la caractéristique BLE Myo
-  Motor1 ->setCallbacks(new Motor1Callbacks());
-  Motor2 ->setCallbacks(new Motor2Callbacks());
-  Motor3 ->setCallbacks(new Motor3Callbacks());
-  Motor4 ->setCallbacks(new Motor4Callbacks());
-  Motor5 ->setCallbacks(new Motor5Callbacks());
+  Motor1 -> setCallbacks(new Motor1Callbacks());
 
   Doigt1.attach(DOIGT1_PIN);
   Doigt2.attach(DOIGT2_PIN);
   Doigt3.attach(DOIGT3_PIN);
   Doigt4.attach(DOIGT4_PIN);
   Doigt5.attach(DOIGT5_PIN);
+
+  Movement_Motor();
   // Démarrer le service BLE
   pService->start();
 
   // Démarrer la publicité BLE
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->start();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(true);
+
+  BLEDevice::startAdvertising();
 }
 
 void loop() {
-
-  Movement_Motor();
 }
