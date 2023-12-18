@@ -46,8 +46,8 @@ void handleOnWrite(BLECharacteristic *pCharacteristic) {
 
   while (valueStr.length() > 0) 
   {
-    int index = valueStr.indexOf(' ');
-    if (index == -1) // No space found
+    int index = valueStr.indexOf('/');
+    if (index == -1) 
     {
       Serial.println(valueStr);
       Motors[StringCount++] = valueStr;
@@ -60,7 +60,7 @@ void handleOnWrite(BLECharacteristic *pCharacteristic) {
     }
   }
 
-  StringCount = 0;
+  StringCount = 0;  
   Serial.println(Motors[0]);
   Serial.println(Motors[1]);
   Serial.println(Motors[2]);
@@ -71,7 +71,7 @@ void handleOnWrite(BLECharacteristic *pCharacteristic) {
 
 class Motor1Callbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *Motor1) override {
-     handleOnWrite(Motor1); // MOTOR1_VALUE =
+     handleOnWrite(Motor1);
   }
 };
 
@@ -89,10 +89,8 @@ void setup() {
     BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
   );
 
-  // Définir une valeur initiale pour la caractéristique Myo
   Motor1 -> setValue("bonjour");
 
-  // Activer la caractéristique BLE Myo
   Motor1 -> setCallbacks(new Motor1Callbacks());
 
   Doigt1.attach(DOIGT1_PIN);
@@ -102,10 +100,9 @@ void setup() {
   Doigt5.attach(DOIGT5_PIN);
 
   Movement_Motor();
-  // Démarrer le service BLE
+
   pService->start();
 
-  // Démarrer la publicité BLE
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(true);
