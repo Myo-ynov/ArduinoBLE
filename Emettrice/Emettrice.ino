@@ -12,9 +12,9 @@
 #define FLEX5_PIN 32
 #define SERVICE_NAME "Myo Device"
 
-static BLEUUID SERVICE_UUID("F000"); // Remplacez par l'UUID de votre service
+static BLEUUID SERVICE_UUID("F000"); 
 static BLEUUID MOTOR1_UUID("F001");
-static BLERemoteCharacteristic* motorCharacteristics[5];  // Remplacez par l'UUID de la caractéristique
+static BLERemoteCharacteristic* motorCharacteristics[5];  
 
 static boolean doConnect = false;
 static boolean connected = false;
@@ -23,22 +23,20 @@ static BLERemoteCharacteristic* pRemoteCharacteristic;
 static BLEAdvertisedDevice* myDevice;
 
 class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
-    void onResult(BLEAdvertisedDevice advertisedDevice) {
-        Serial.print("BLE Advertised Device found: ");
-        Serial.println(advertisedDevice.toString().c_str());
+  void onResult(BLEAdvertisedDevice advertisedDevice) {
+    Serial.print("BLE Advertised Device found: ");
+    Serial.println(advertisedDevice.toString().c_str());
 
-        // Nous avons trouvé un dispositif, voyons maintenant s'il contient le service que nous recherchons.
-        if (advertisedDevice.haveName() && advertisedDevice.getName() == SERVICE_NAME) {
-            
-            Serial.println("Found Our Service");
-            // Stop scanning as we found our device
-            BLEDevice::getScan()->stop();
-            myDevice = new BLEAdvertisedDevice(advertisedDevice);
-            doConnect = true;
-        } else {
-            Serial.println("Device found, but not our service");
-        }
-    } // onResult
+    if (advertisedDevice.haveName() && advertisedDevice.getName() == SERVICE_NAME) {
+        
+        Serial.println("Found Our Service");
+        BLEDevice::getScan()->stop();
+        myDevice = new BLEAdvertisedDevice(advertisedDevice);
+        doConnect = true;
+    } else {
+        Serial.println("Device found, but not our service");
+    }
+  } 
 }; 
 
 class MyClientCallback : public BLEClientCallbacks {
@@ -52,47 +50,44 @@ class MyClientCallback : public BLEClientCallbacks {
 };
 
 bool connectToServer() {
-    Serial.print("Forming a connection to ");
-    Serial.println(myDevice->getAddress().toString().c_str());
+  Serial.print("Forming a connection to ");
+  Serial.println(myDevice->getAddress().toString().c_str());
 
-    BLEClient* pClient = BLEDevice::createClient();
-    pClient->setClientCallbacks(new MyClientCallback());
+  BLEClient* pClient = BLEDevice::createClient();
+  pClient->setClientCallbacks(new MyClientCallback());
 
-    // Réessayer la connexion un certain nombre de fois
-    const int maxAttempts = 3;
-    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-      Serial.print("Attempt ");
-      Serial.print(attempt);
-      Serial.println(" of connecting to BLE Server...");
+  const int maxAttempts = 3;
 
-      // Connect to the BLE Server.
-      if (pClient->connect(myDevice)) {
-          Serial.println(" - Connected to server");
+  for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+    Serial.print("Attempt ");
+    Serial.print(attempt);
+    Serial.println(" of connecting to BLE Server...");
 
-          // Obtention d'une référence au service désiré
-          BLERemoteService* pRemoteService = pClient->getService(SERVICE_UUID);
-          if (pRemoteService == nullptr) {
-              Serial.print("Failed to find our service UUID: ");
-              Serial.println(SERVICE_UUID.toString().c_str());
-              return false;
-          }
-          Serial.println(" - Found our service");
+    if (pClient->connect(myDevice)) {
+        Serial.println(" - Connected to server");
 
-          // Récupérer les caractéristiques pour chaque moteur
-          motorCharacteristics[0] = pRemoteService->getCharacteristic(MOTOR1_UUID);
+        BLERemoteService* pRemoteService = pClient->getService(SERVICE_UUID);
+        if (pRemoteService == nullptr) {
+            Serial.print("Failed to find our service UUID: ");
+            Serial.println(SERVICE_UUID.toString().c_str());
+            return false;
+        }
+        Serial.println(" - Found our service");
 
-          Serial.println(" - Found all motor characteristics");
-          connected = true;
-          return true;
-      } 
-      else {
-        Serial.println(" - Failed to connect, retrying...");
-        delay(1000); // Délai avant de réessayer
-      }
+        motorCharacteristics[0] = pRemoteService->getCharacteristic(MOTOR1_UUID);
+
+        Serial.println(" - Found all motor characteristics");
+        connected = true;
+        return true;
+    } 
+    else {
+      Serial.println(" - Failed to connect, retrying...");
+      delay(1000); // Délai avant de réessayer
     }
+  }
 
-    Serial.println("Failed to connect after maximum attempts");
-    return false;
+  Serial.println("Failed to connect after maximum attempts");
+  return false;
 }
 
 void writeMotorValue(String value) {
@@ -114,7 +109,6 @@ void setup() {
   Serial.println("Starting Arduino BLE Client application...");
   BLEDevice::init("");
 
-  // Start scanning for devices
   BLEScan* pBLEScan = BLEDevice::getScan(); 
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   pBLEScan->setInterval(1349);
@@ -171,7 +165,7 @@ void loop() {
   if (connected) {
     String Mess = creaMess() ;
     writeMotorValue(Mess); 
-    delay(1000); // Delay a second between loops.
+    delay(1000);
   }
 }
 
